@@ -105,12 +105,12 @@ namespace Neo3Express
             return new BigDecimal(amount, decimals);
         }
 
-        public static Transaction MakeTransaction(UInt160 sender, UInt160 receiver, UInt160 assetId, BigDecimal quantity, byte[]? witnessScript)
+        public static Transaction MakeTransaction(UInt160 sender, UInt160 receiver, UInt160 assetId, BigDecimal? quantity, byte[]? witnessScript)
         {
-            byte[] BuildScript()
+            byte[] BuildScript(BigDecimal _quantity)
             {
                 using var sb = new ScriptBuilder();
-                sb.EmitAppCall(assetId, "transfer", sender, receiver, quantity.Value);
+                sb.EmitAppCall(assetId, "transfer", sender, receiver, _quantity.Value);
                 sb.Emit(OpCode.THROWIFNOT);
                 return sb.ToArray();
             }
@@ -118,12 +118,17 @@ namespace Neo3Express
             using Snapshot snapshot = Blockchain.Singleton.GetSnapshot();
 
             var balance = GetBalance(assetId, sender, snapshot);
-            if (balance.Value < quantity.Value)
+            if (!quantity.HasValue)
+            {
+                quantity = balance;
+            }
+
+            if (balance.Value < quantity.Value.Value)
             {
                 throw new InvalidOperationException("Insufficient balance");
             }
 
-            var script = BuildScript();
+            var script = BuildScript(quantity.Value);
             var cosigners = new[]
             {
                 new Cosigner()

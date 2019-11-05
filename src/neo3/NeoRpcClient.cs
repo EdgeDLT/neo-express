@@ -62,9 +62,9 @@ namespace Neo3Express
             return JsonRpcClient.RpcCall(uri, "express-submit-signatures", new JArray(context, signatures));
         }
 
-        public static Task<JToken?> ExpressTransfer(Uri uri, string asset, string quantity, string senderAddress, string receiverAddress)
+        public static Task<JToken?> ExpressTransfer(Uri uri, string asset, string quantity, string senderAddress, string receiverAddress, string witness)
         {
-            return JsonRpcClient.RpcCall(uri, "express-transfer", new JArray(asset, quantity, senderAddress, receiverAddress));
+            return JsonRpcClient.RpcCall(uri, "express-transfer", new JArray(asset, quantity, senderAddress, receiverAddress, witness));
         }
 
         public static Task<JToken?> GetAccountState(Uri uri, string address)

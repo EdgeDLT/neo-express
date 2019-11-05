@@ -334,19 +334,6 @@ namespace Neo2Express
             return NeoRpcClient.ExpressCreateCheckpoint(uri, checkPointFileName);
         }
 
-        internal static (byte[] signature, byte[] publicKey) Sign2(ExpressWalletAccount account, byte[] data)
-        {
-            var devAccount = DevWalletAccount.FromExpressWalletAccount(account);
-
-            var key = devAccount.GetKey();
-            if (key == null)
-                throw new InvalidOperationException();
-
-            var publicKey = key.PublicKey.EncodePoint(false).AsSpan().Slice(1).ToArray();
-            var signature = Neo.Cryptography.Crypto.Default.Sign(data, key.PrivateKey, publicKey);
-            return (signature, key.PublicKey.EncodePoint(true));
-        }
-
         static JObject Sign(ExpressWalletAccount account, byte[] data)
         {
             var devAccount = DevWalletAccount.FromExpressWalletAccount(account);

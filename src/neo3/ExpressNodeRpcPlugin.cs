@@ -102,12 +102,24 @@ namespace Neo3Express
 
         private JObject? OnExpressTransfer(JArray @params)
         {
-            var assetId = NodeUtility.GetAssetId(@params[0].AsString());
-            var assetDescriptor = new AssetDescriptor(assetId);
-            if (!BigDecimal.TryParse(@params[1].AsString(), assetDescriptor.Decimals, out var quantity))
+            static BigDecimal? GetQuantity(UInt160 assetId, string quantity)
             {
-                throw new Exception("Incorrect Amount Format");
+                if (quantity.Equals("all", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                var assetDescriptor = new AssetDescriptor(assetId);
+                if (BigDecimal.TryParse(quantity, assetDescriptor.Decimals, out var result))
+                {
+                    return result;
+                }
+
+                throw new ArgumentException(nameof(quantity));
             }
+
+            var assetId = NodeUtility.GetAssetId(@params[0].AsString());
+            var quantity = GetQuantity(assetId, @params[1].AsString());
             var sender = @params[2].AsString().ToScriptHash();
             var receiver = @params[3].AsString().ToScriptHash();
             var witnessScript = @params[4].AsString().HexToBytes();
@@ -122,8 +134,9 @@ namespace Neo3Express
         {
             var address = @params[0].AsString().ToScriptHash();
 
-            var neoBalance = NodeUtility.GetBalance(NativeContract.NEO.Hash, address);
-            var gasBalance = NodeUtility.GetBalance(NativeContract.GAS.Hash, address);
+            using var snapshot = Blockchain.Singleton.GetSnapshot();
+            var neoBalance = NodeUtility.GetBalance(NativeContract.NEO.Hash, address, snapshot);
+            var gasBalance = NodeUtility.GetBalance(NativeContract.GAS.Hash, address, snapshot);
 
             var j = new JObject();
             j["NEO"] = neoBalance.ToString();
