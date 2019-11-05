@@ -1,0 +1,42 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "run",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/neo-express/bin/Debug/netcoreapp3.0/neo-express.dll",
+            "args": ["create"],
+            "cwd": "${workspaceFolder}/.vscode",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "run",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/neo-express/bin/Debug/netcoreapp3.0/neo-express.dll",
+            "args": ["run", "-s", "1"],
+            "cwd": "${workspaceFolder}/.vscode",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "run checkpoint",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/neo-express/bin/Debug/netcoreapp3.0/neo-express.dll",
+            "args": ["checkpoint", "run", "${workspaceFolder}/.vscode/cp1.neo-express-checkpoint", "-s", "1"],
+            "cwd": "${workspaceFolder}/.vscode",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+
+    ]
+}
