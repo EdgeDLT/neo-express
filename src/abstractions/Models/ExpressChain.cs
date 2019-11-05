@@ -39,5 +39,13 @@ namespace NeoExpress.Abstractions.Models
 
         [JsonProperty("contracts")]
         public List<ExpressContract> Contracts { get; set; } = new List<ExpressContract>();
+
+        public ExpressChain() { }
+
+        public ExpressChain(List<ExpressConsensusNode> nodes)
+        {
+            Magic = GenerateMagicValue();
+            ConsensusNodes = nodes;
+        }
     }
 }

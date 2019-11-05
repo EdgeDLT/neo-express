@@ -28,8 +28,8 @@ namespace Neo3Express.Models
         {
             Name = name,
             Accounts = accounts.Values
-            .Select(a => a.ToExpressWalletAccount())
-            .ToList(),
+                .Select(a => a.ToExpressWalletAccount())
+                .ToList(),
         };
 
         public static DevWallet FromExpressWallet(ExpressWallet wallet)

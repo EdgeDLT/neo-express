@@ -72,7 +72,7 @@ namespace NeoExpress
         }
 
         private static Lazy<IBlockchainOperations> blockchainOperations = 
-            new Lazy<IBlockchainOperations>(() => new Neo2Express.BlockchainOperations());
+            new Lazy<IBlockchainOperations>(() => new Neo3Express.BlockchainOperations());
 
         public static IBlockchainOperations BlockchainOperations => blockchainOperations.Value;
     }

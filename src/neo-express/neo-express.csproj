@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <AssemblyName>neo-express</AssemblyName>
@@ -32,6 +32,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\abstractions\abstractions.csproj" />
-    <ProjectReference Include="..\neo2\neo-2-express.csproj" />
+    <ProjectReference Include="..\neo3\neo-3-express.csproj" />
   </ItemGroup>
 </Project>
