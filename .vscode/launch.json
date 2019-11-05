@@ -5,12 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "run",
+            "name": "create",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/src/neo-express/bin/Debug/netcoreapp3.0/neo-express.dll",
             "args": ["create"],
+            "cwd": "${workspaceFolder}/.vscode",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "checkpoint create",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/neo-express/bin/Debug/netcoreapp3.0/neo-express.dll",
+            "args": ["checkpoint", "create", "cp1"],
             "cwd": "${workspaceFolder}/.vscode",
             "console": "internalConsole",
             "stopAtEntry": false
