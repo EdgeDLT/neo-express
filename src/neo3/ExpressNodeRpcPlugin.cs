@@ -19,14 +19,11 @@ namespace Neo3Express
 {
     internal class ExpressNodeRpcPlugin : Plugin, IRpcPlugin
     {
-        private readonly Persistence.RocksDbStore? store;
+        private readonly Neo.Persistence.Store store;
 
         public ExpressNodeRpcPlugin(Neo.Persistence.Store store)
         {
-            if (store is Persistence.RocksDbStore rocksDbStore)
-            {
-                this.store = rocksDbStore;
-            }
+            this.store = store;
         }
 
         public override void Configure()
@@ -39,8 +36,35 @@ namespace Neo3Express
                 "express-show-coins" => OnExpressShowCoins(@params),
                 "express-submit-signatures" => OnExpressSubmitSignatures(@params),
                 "express-transfer" => OnExpressTransfer(@params),
+                "express-create-checkpoint" => OnCheckpointCreate(@params),
                 _ => null,
             };
+
+        public JObject OnCheckpointCreate(JArray @params)
+        {
+            string filename = @params[0].AsString();
+
+            if (ProtocolSettings.Default.StandbyValidators.Length > 1)
+            {
+                throw new Exception("Checkpoint create is only supported on single node express instances");
+            }
+
+            if (store is Persistence.RocksDbStore rocksDbStore)
+            {
+                var defaultAccount = System.RpcServer.Wallet.GetAccounts().Single(a => a.IsDefault);
+                BlockchainOperations.CreateCheckpoint(
+                    rocksDbStore,
+                    filename,
+                    ProtocolSettings.Default.Magic,
+                    defaultAccount.ScriptHash.ToAddress());
+
+                return filename;
+            }
+            else
+            {
+                throw new Exception("Checkpoint create is only supported for RocksDb storage implementation");
+            }
+        }
 
         private JObject? OnExpressSubmitSignatures(JArray @params)
         {
