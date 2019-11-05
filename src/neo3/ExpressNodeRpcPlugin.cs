@@ -33,10 +33,10 @@ namespace Neo3Express
         public JObject? OnProcess(HttpContext context, string method, JArray @params) 
             => method switch
             {
+                "express-create-checkpoint" => OnCheckpointCreate(@params),
                 "express-show-coins" => OnExpressShowCoins(@params),
                 "express-submit-signatures" => OnExpressSubmitSignatures(@params),
                 "express-transfer" => OnExpressTransfer(@params),
-                "express-create-checkpoint" => OnCheckpointCreate(@params),
                 _ => null,
             };
 

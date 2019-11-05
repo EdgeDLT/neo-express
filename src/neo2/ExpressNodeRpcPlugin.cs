@@ -67,7 +67,7 @@ namespace Neo2Express
             }
         }
 
-        private JObject OnTransfer(JArray @params)
+        private JObject OnExpressTransfer(JArray @params)
         {
             static Fixed8? GetQuantity(UInt256 assetId, string quantity)
             {
@@ -99,7 +99,7 @@ namespace Neo2Express
             }
         }
 
-        private JObject OnShowCoins(JArray @params)
+        private JObject OnExpressShowCoins(JArray @params)
         {
             var address = @params[0].AsString().ToScriptHash();
 
@@ -119,7 +119,7 @@ namespace Neo2Express
             }
         }
 
-        private JObject OnClaim(JArray @params)
+        private JObject OnExpressClaim(JArray @params)
         {
             UInt256 GetAssetId(string asset)
             {
@@ -141,7 +141,7 @@ namespace Neo2Express
             }
         }
 
-        private JObject OnSubmitSignatures(JArray @params)
+        private JObject OnExpressSubmitSignatures(JArray @params)
         {
             var context = ContractParametersContext.FromJson(@params[0]);
             var signatures = (JArray)@params[1];
@@ -184,7 +184,7 @@ namespace Neo2Express
             return json;
         }
 
-        public JObject OnDeployContract(JArray @params)
+        public JObject OnExpressDeployContract(JArray @params)
         {
             var contract = Newtonsoft.Json.Linq.JToken.Parse(@params[0].ToString());
             var address = @params[1].AsString().ToScriptHash();
@@ -226,7 +226,7 @@ namespace Neo2Express
             };
         }
 
-        public JObject OnInvokeContract(JArray @params)
+        public JObject OnExpressInvokeContract(JArray @params)
         {
             var scriptHash = UInt160.Parse(@params[0].AsString());
             var scriptParams = ((JArray)@params[1]).Select(ContractParameter.FromJson).ToArray();
@@ -253,7 +253,7 @@ namespace Neo2Express
             }
         }
 
-        public JObject OnGetContractStorage(JArray @params)
+        public JObject OnExpressGetContractStorage(JArray @params)
         {
             var scriptHash = UInt160.Parse(@params[0].AsString());
 
@@ -276,7 +276,7 @@ namespace Neo2Express
             }
         }
 
-        public JObject OnCheckpointCreate(JArray @params)
+        public JObject OnExpressCheckpointCreate(JArray @params)
         {
             string filename = @params[0].AsString();
 
@@ -426,43 +426,28 @@ namespace Neo2Express
             }
         }
 
-        JObject? IRpcPlugin.OnProcess(HttpContext context, string method, JArray @params)
-        {
-            switch (method)
+        JObject? IRpcPlugin.OnProcess(HttpContext context, string method, JArray @params) => 
+            method switch
             {
                 // ApplicationLogs plugin compatible RPC endpoints
-                case "getapplicationlog":
-                    return OnGetApplicationLog(@params);
+                "getapplicationlog" => OnGetApplicationLog(@params),
 
                 // RpcSystemAssetTracker plugin compatible RPC endpoints
-                case "getclaimable":
-                    return GetClaimable(@params);
-                case "getunclaimed":
-                    return GetUnclaimed(@params);
-                case "getunspents":
-                    return OnGetUnspents(@params);
+                "getclaimable" => GetClaimable(@params),
+                "getunclaimed" => GetUnclaimed(@params),
+                "getunspents" => OnGetUnspents(@params),
 
                 // custom Neo-Express RPC Endpoints
-                case "express-transfer":
-                    return OnTransfer(@params);
-                case "express-claim":
-                    return OnClaim(@params);
-                case "express-show-coins":
-                    return OnShowCoins(@params);
-                case "express-submit-signatures":
-                    return OnSubmitSignatures(@params);
-                case "express-deploy-contract":
-                    return OnDeployContract(@params);
-                case "express-invoke-contract":
-                    return OnInvokeContract(@params);
-                case "express-get-contract-storage":
-                    return OnGetContractStorage(@params);
-                case "express-create-checkpoint":
-                    return OnCheckpointCreate(@params);
-            }
-
-            return null;
-        }
+                "express-claim" => OnExpressClaim(@params),
+                "express-create-checkpoint" => OnExpressCheckpointCreate(@params),
+                "express-deploy-contract" => OnExpressDeployContract(@params),
+                "express-get-contract-storage" => OnExpressGetContractStorage(@params),
+                "express-invoke-contract" => OnExpressInvokeContract(@params),
+                "express-show-coins" => OnExpressShowCoins(@params),
+                "express-submit-signatures" => OnExpressSubmitSignatures(@params),
+                "express-transfer" => OnExpressTransfer(@params),
+                _ => null,
+            };
 
         void IRpcPlugin.PreProcess(HttpContext context, string method, JArray _params)
         {
