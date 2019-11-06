@@ -327,7 +327,7 @@ namespace Neo2Express
             return null;
         }
 
-        public static (InvocationTransaction?, ApplicationEngine) MakeDeploymentTransaction(Snapshot snapshot, ImmutableHashSet<UInt160> addresses, Newtonsoft.Json.Linq.JToken contract)
+        public static (InvocationTransaction?, ApplicationEngine) MakeDeploymentTransaction(Snapshot snapshot, ImmutableHashSet<UInt160> addresses, ExpressContract contract)
         {
             var tx = BuildInvocationTx(() => BuildContractCreateScript(contract));
             var engine = ApplicationEngine.Run(tx.Script, tx, null, true);
@@ -403,27 +403,30 @@ namespace Neo2Express
             return builder;
         }
 
-        private static ScriptBuilder BuildContractCreateScript(JToken json)
+        private static ScriptBuilder BuildContractCreateScript(ExpressContract contract)
         {
-            ContractParameterType TypeParse(JToken jtoken) => Enum.Parse<ContractParameterType>(jtoken.Value<string>());
+            bool GetProperty(string propertyName)
+            {
+                if (contract.Properties.TryGetValue(propertyName, out var propString)
+                    && bool.TryParse(propString, out var prop))
+                {
+                    return prop;
+                }
 
-            var contractData = json.Value<string>("contract-data").HexToBytes();
+                return false;
+            }
 
-            var entryPoint = json.Value<string>("entry-point");
-            var entryFunction = json["functions"].Single(t => t.Value<string>("name") == entryPoint);
-            var entryParameters = entryFunction["parameters"].Select(t => TypeParse(t.Value<string>("type")));
-            var entryReturnType = TypeParse(entryFunction["return-type"]);
+            ContractParameterType TypeParse(string typeName) => Enum.Parse<ContractParameterType>(typeName);
 
-            var props = json["properties"];
-            var title = props.Value<string>("title") ?? json.Value<string>("name");
-            var description = json.Value<string>("description") ?? "no description provided";
-            var version = json.Value<string>("version") ?? "0.1.0";
-            var author = json.Value<string>("author") ?? "no description provided";
-            var email = json.Value<string>("email") ?? "nobody@fake.email";
+            var contractData = contract.ContractData.HexToBytes();
+
+            var entryFunction = contract.Functions.Single(f => f.Name == contract.EntryPoint);
+            var entryParameters = entryFunction.Parameters.Select(p => TypeParse(p.Type));
+            var entryReturnType = TypeParse(entryFunction.ReturnType);
 
             var contractPropertyState = ContractPropertyState.NoProperty;
-            if (props.Value<bool?>("has-storage") == true) contractPropertyState |= ContractPropertyState.HasStorage;
-            if (props.Value<bool?>("has-dynamic-invoke") == true) contractPropertyState |= ContractPropertyState.HasDynamicInvoke;
+            if (GetProperty("has-storage")) contractPropertyState |= ContractPropertyState.HasStorage;
+            if (GetProperty("has-dynamic-invoke") == true) contractPropertyState |= ContractPropertyState.HasDynamicInvoke;
 
             var builder = new ScriptBuilder();
             builder.EmitSysCall("Neo.Contract.Create",
@@ -431,11 +434,10 @@ namespace Neo2Express
                 entryParameters.ToArray(),
                 entryReturnType,
                 contractPropertyState,
-                title,
-                version,
-                author,
-                email,
-                description);
+                contract.Name,
+                "no author provided",
+                "nobody@fake.email",
+                "no description provided");
             return builder;
         }
     }

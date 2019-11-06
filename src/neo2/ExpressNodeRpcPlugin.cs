@@ -11,6 +11,7 @@ using Neo.Plugins;
 using Neo.SmartContract;
 using Neo.VM;
 using Neo.Wallets;
+using NeoExpress.Abstractions.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -186,7 +187,8 @@ namespace Neo2Express
 
         public JObject OnExpressDeployContract(JArray @params)
         {
-            var contract = Newtonsoft.Json.Linq.JToken.Parse(@params[0].ToString());
+            var contract = Newtonsoft.Json.Linq.JToken.Parse(@params[0].ToString())
+                .ToObject<ExpressContract>();
             var address = @params[1].AsString().ToScriptHash();
             var addresses = ImmutableHashSet.Create(address);
 
