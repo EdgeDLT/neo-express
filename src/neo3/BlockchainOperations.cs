@@ -117,7 +117,8 @@ namespace Neo3Express
             var uri = chain.GetUri();
             var result = await NeoRpcClient.ExpressDeployContract(uri, contract, account).ConfigureAwait(false);
 
-            return await SignResult(result, chain, account).ConfigureAwait(false);        }
+            return await SignResult(result, chain, account).ConfigureAwait(false);
+        }
 
         public Task<JArray> InvokeContract(ExpressChain chain, ExpressContract contract, IEnumerable<JObject> @params, ExpressWalletAccount? account)
         {
