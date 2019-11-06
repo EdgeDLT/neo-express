@@ -112,10 +112,12 @@ namespace Neo3Express
             return wallet.ToExpressWallet();
         }
 
-        public Task<JArray> DeployContract(ExpressChain chain, ExpressContract contract, ExpressWalletAccount account)
+        public async Task<JArray> DeployContract(ExpressChain chain, ExpressContract contract, ExpressWalletAccount account)
         {
-            throw new NotImplementedException();
-        }
+            var uri = chain.GetUri();
+            var result = await NeoRpcClient.ExpressDeployContract(uri, contract, account).ConfigureAwait(false);
+
+            return await SignResult(result, chain, account).ConfigureAwait(false);        }
 
         public Task<JArray> InvokeContract(ExpressChain chain, ExpressContract contract, IEnumerable<JObject> @params, ExpressWalletAccount? account)
         {
@@ -124,7 +126,92 @@ namespace Neo3Express
 
         public ExpressContract LoadContract(string filepath, Func<string, bool, bool> promptYesNo)
         {
-            throw new NotImplementedException();
+            static string GetContractFile(string path)
+            {
+                if (Directory.Exists(path))
+                {
+                    var nefFiles = Directory.EnumerateFiles(path, "*.nef");
+                    var nefFileCount = nefFiles.Count();
+
+                    if (nefFileCount == 0)
+                    {
+                        throw new ArgumentException($"There are no .nef files in {path}");
+                    }
+
+                    if (nefFileCount > 1)
+                    {
+                        throw new ArgumentException($"There are more than one .nef files in {path}. Please specify file name directly");
+                    }
+
+                    return nefFiles.Single();
+                }
+
+                if (!File.Exists(path) || Path.GetExtension(path) != ".nef")
+                {
+                    throw new ArgumentException($"{path} is not an .nef file.");
+                }
+
+                return path;
+            }
+
+            static Neo.SmartContract.NefFile GetNefFile(string path)
+            {
+                using var reader = new BinaryReader(File.OpenRead(path), System.Text.Encoding.UTF8, false);
+                return Neo.IO.Helper.ReadSerializable<Neo.SmartContract.NefFile>(reader);
+            }
+
+            static ExpressContract.Function ToExpressContractFunction(AbiContract.Function function) => new ExpressContract.Function
+            {
+                Name = function.Name,
+                ReturnType = function.ReturnType,
+                Parameters = function.Parameters.Select(p => new ExpressContract.Parameter
+                {
+                    Name = p.Name,
+                    Type = p.Type
+                }).ToList()
+            };
+
+            var nefFilePath = GetContractFile(filepath);
+            System.Diagnostics.Debug.Assert(File.Exists(nefFilePath));
+
+            string abiFile = Path.ChangeExtension(nefFilePath, ".abi.json");
+            if (!File.Exists(abiFile))
+            {
+                throw new ArgumentException($"there is no .abi.json file for {nefFilePath}.");
+            }
+
+            AbiContract abiContract;
+            var serializer = new JsonSerializer();
+            using (var stream = File.OpenRead(abiFile))
+            using (var reader = new JsonTextReader(new StreamReader(stream)))
+            {
+                abiContract = serializer.Deserialize<AbiContract>(reader);
+            }
+
+            var properties = new Dictionary<string, string>();
+
+            if (promptYesNo("Does this contract use storage?", false))
+            {
+                properties["has-storage"] = "true";
+            }
+
+            if (promptYesNo("Is this contract payable?", false))
+            {
+                properties["is-payable"] = "true";
+            }
+
+            var nefFile = GetNefFile(nefFilePath);
+            var name = Path.GetFileNameWithoutExtension(nefFilePath);
+            return new ExpressContract()
+            {
+                Name = name,
+                Hash = abiContract.Hash, // nefFile.ScriptHash?
+                EntryPoint = abiContract.Entrypoint.Name,
+                ContractData = nefFile.Script.ToHexString(),
+                Functions = abiContract.Functions.Append(abiContract.Entrypoint).Select(ToExpressContractFunction).ToList(),
+                Events = abiContract.Events.Select(ToExpressContractFunction).ToList(),
+                Properties = properties,
+            };        
         }
 
         public void ExportBlockchain(ExpressChain chain, string folder, string password, Action<string> writeConsole)
@@ -429,7 +516,7 @@ namespace Neo3Express
         public async Task<JArray> Transfer(ExpressChain chain, string asset, string quantity, ExpressWalletAccount sender, ExpressWalletAccount receiver)
         {
             var uri = chain.GetUri();
-            var result = await NeoRpcClient.ExpressTransfer(uri, asset, quantity, sender.ScriptHash, receiver.ScriptHash, sender.Contract.Script)
+            var result = await NeoRpcClient.ExpressTransfer(uri, asset, quantity, sender, receiver)
                 .ConfigureAwait(false);
 
             return await SignResult(result, chain, sender).ConfigureAwait(false);

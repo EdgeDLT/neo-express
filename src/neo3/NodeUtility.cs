@@ -4,6 +4,7 @@ using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.SmartContract;
+using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native;
 using Neo.VM;
 using Neo.Wallets;
@@ -105,7 +106,73 @@ namespace Neo3Express
             return new BigDecimal(amount, decimals);
         }
 
-        public static Transaction MakeTransaction(UInt160 sender, UInt160 receiver, UInt160 assetId, BigDecimal? quantity, byte[]? witnessScript)
+        public static byte[] LoadDeploymentScript(string nefFilePath, bool hasStorage, bool isPayable/*, out UInt160 scriptHash*/)
+        {
+            var info = new FileInfo(nefFilePath);
+            if (!info.Exists || info.Length >= Transaction.MaxTransactionSize)
+            {
+                throw new ArgumentException(nameof(nefFilePath));
+            }
+
+            //NefFile file;
+            //using (var stream = new BinaryReader(File.OpenRead(nefFilePath), Encoding.UTF8, false))
+            //{
+            //    file = stream.ReadSerializable<NefFile>();
+            //}
+            //scriptHash = file.ScriptHash;
+
+            ContractFeatures properties = ContractFeatures.NoProperty;
+            if (hasStorage) properties |= ContractFeatures.HasStorage;
+            if (isPayable) properties |= ContractFeatures.Payable;
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitSysCall(InteropService.Neo_Contract_Create, Array.Empty<byte>(), properties);
+                return sb.ToArray();
+            }
+        }
+
+        public static Transaction MakeDeploymentTransaction(ExpressContract contract, UInt160 account, byte[]? witnessScript)
+        {
+            byte[] BuildScript(ContractFeatures _features)
+            {
+                using var sb = new ScriptBuilder();
+                sb.EmitSysCall(InteropService.Neo_Contract_Create, 
+                    contract.ContractData.HexToBytes(), _features);
+                return sb.ToArray();
+            }
+
+            bool GetProperty(string propertyName)
+            {
+                if (contract.Properties.TryGetValue(propertyName, out var propString)
+                    && bool.TryParse(propString, out var prop))
+                {
+                    return prop;
+                }
+
+                return false;
+            }
+
+            ContractFeatures features = ContractFeatures.NoProperty;
+            if (GetProperty("has-storage"))
+            {
+                features |= ContractFeatures.HasStorage;
+            }
+            if (GetProperty("is-payable"))
+            {
+                features |= ContractFeatures.Payable;
+            }
+
+            var script = BuildScript(features);
+
+            using Snapshot snapshot = Blockchain.Singleton.GetSnapshot();
+            var gasBalance = GetBalance(NativeContract.GAS.Hash, account, snapshot);
+
+            return MakeTransaction(snapshot, account, script, 
+                Array.Empty<TransactionAttribute>(), Array.Empty<Cosigner>(), 
+                gasBalance, witnessScript);
+        }
+
+        public static Transaction MakeTransferTransaction(UInt160 sender, UInt160 receiver, UInt160 assetId, BigDecimal? quantity, byte[]? witnessScript)
         {
             byte[] BuildScript(BigDecimal _quantity)
             {

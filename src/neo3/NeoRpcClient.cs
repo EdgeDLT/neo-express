@@ -23,18 +23,16 @@ namespace Neo3Express
             return JsonRpcClient.RpcCall(uri, "express-create-checkpoint", new JArray(checkpointPath));
         }
 
-        public static Task<JToken?> ExpressDeployContract(Uri uri, ExpressContract contract, string address)
+        public static Task<JToken?> ExpressDeployContract(Uri uri, ExpressContract contract, ExpressWalletAccount address)
         {
             JToken SerializeContract()
             {
                 var serializer = new JsonSerializer();
-                using (var writer = new JTokenWriter())
-                {
-                    serializer.Serialize(writer, contract);
-                    return writer.Token;
-                }
+                using var writer = new JTokenWriter();
+                serializer.Serialize(writer, contract);
+                return writer.Token;
             }
-            return JsonRpcClient.RpcCall(uri, "express-deploy-contract", new JArray(SerializeContract(), address));
+            return JsonRpcClient.RpcCall(uri, "express-deploy-contract", new JArray(SerializeContract(), address.ScriptHash, address.Contract.Script));
         }
 
         public static Task<JToken?> ExpressGetContractStorage(Uri uri, string scriptHash)
@@ -62,9 +60,9 @@ namespace Neo3Express
             return JsonRpcClient.RpcCall(uri, "express-submit-signatures", new JArray(context, signatures));
         }
 
-        public static Task<JToken?> ExpressTransfer(Uri uri, string asset, string quantity, string senderAddress, string receiverAddress, string witness)
+        public static Task<JToken?> ExpressTransfer(Uri uri, string asset, string quantity, ExpressWalletAccount sender, ExpressWalletAccount receiver)
         {
-            return JsonRpcClient.RpcCall(uri, "express-transfer", new JArray(asset, quantity, senderAddress, receiverAddress, witness));
+            return JsonRpcClient.RpcCall(uri, "express-transfer", new JArray(asset, quantity, sender.ScriptHash, receiver.ScriptHash, sender.Contract.Script));
         }
 
         public static Task<JToken?> GetAccountState(Uri uri, string address)

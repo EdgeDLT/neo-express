@@ -14,6 +14,7 @@ using Neo.SmartContract;
 using Neo.SmartContract.Native;
 using Neo.VM;
 using Neo.Wallets;
+using NeoExpress.Abstractions.Models;
 
 namespace Neo3Express
 {
@@ -34,11 +35,24 @@ namespace Neo3Express
             => method switch
             {
                 "express-create-checkpoint" => OnCheckpointCreate(@params),
+                "express-deploy-contract" => OnExpressDeployContract(@params),
                 "express-show-coins" => OnExpressShowCoins(@params),
                 "express-submit-signatures" => OnExpressSubmitSignatures(@params),
                 "express-transfer" => OnExpressTransfer(@params),
                 _ => null,
             };
+
+        private JObject? OnExpressDeployContract(JArray @params)
+        {
+            var contract = Newtonsoft.Json.Linq.JToken.Parse(@params[0].ToString())
+                .ToObject<ExpressContract>();
+            var address = @params[1].AsString().ToScriptHash();
+            var witnessScript = @params[2].AsString().HexToBytes();
+
+            var tx = NodeUtility.MakeDeploymentTransaction(contract, address, witnessScript);
+            var context = new ContractParametersContext(tx);
+            return CreateContextResponse(context, tx);
+        }
 
         public JObject OnCheckpointCreate(JArray @params)
         {
@@ -124,7 +138,7 @@ namespace Neo3Express
             var receiver = @params[3].AsString().ToScriptHash();
             var witnessScript = @params[4].AsString().HexToBytes();
 
-            var tx = NodeUtility.MakeTransaction(sender, receiver, assetId, quantity, witnessScript);
+            var tx = NodeUtility.MakeTransferTransaction(sender, receiver, assetId, quantity, witnessScript);
             var context = new ContractParametersContext(tx);
 
             return CreateContextResponse(context, tx);
